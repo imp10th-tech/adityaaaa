@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { uploadFile } from '@/lib/upload';
 import { AdminDynamicIcon } from '@/components/AdminDynamicIcon';
 import {
-  Save, Loader2, Image as ImageIcon, Music, X, FileUp, Video, Upload,
+  Save, Loader2, Check, Image as ImageIcon, Music, X, FileUp, Video, Upload,
 } from 'lucide-react';
 
 // ---- Types ----
@@ -12,18 +12,31 @@ export interface SettingItem { key: string; value: string; category: string }
 
 // ---- Shared UI helpers ----
 
-export function SaveButton({ onSave, saving, error }: { onSave: () => void; saving: boolean; error?: string | null }) {
+export function SaveButton({ onSave, saving, error }: {
+  onSave: () => void | boolean | Promise<void | boolean>;
+  saving: boolean;
+  error?: string | null;
+}) {
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setSaved(false);
+    const result = await onSave();
+    if (result !== false) setSaved(true);
+  };
+
   return (
     <div>
       <button
-        onClick={onSave}
+        onClick={() => void handleSave()}
         disabled={saving}
         className="flex items-center gap-2 px-5 py-2.5 bg-katana-crimson/15 border border-katana-crimson/40 text-katana-crimson rounded text-sm font-body font-semibold hover:bg-katana-crimson/25 hover:border-katana-crimson/60 transition-all disabled:opacity-50"
       >
-        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-        Save Changes
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+        {saved ? 'Saved' : 'Save Changes'}
       </button>
       {error && <p className="text-katana-crimson text-xs mt-2">{error}</p>}
+      {saved && !error && <p className="text-katana-gold text-xs mt-2">Saved successfully. These changes are now stored and live on the site.</p>}
     </div>
   );
 }
@@ -314,13 +327,17 @@ export function useSettings(category: string) {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const save = async () => {
+  const save = async (): Promise<boolean> => {
     setSaving(true);
     setSaveError(null);
     const upserts = Object.entries(settings).map(([key, value]) => ({ key, value, category }));
     const { error } = await supabase.from('site_settings').upsert(upserts, { onConflict: 'key' });
     setSaving(false);
-    if (error) setSaveError(error.message);
+    if (error) {
+      setSaveError(error.message);
+      return false;
+    }
+    return true;
   };
 
   const setSavingManually = (v: boolean) => setSaving(v);
