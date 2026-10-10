@@ -111,11 +111,12 @@ export function SiteTextEditor() {
     });
   }, []);
 
-  const saveAll = async () => {
+  const saveAll = async (): Promise<boolean> => {
     setSavingManually(true);
-    await save();
-    await supabase.from('site_settings').upsert({ key: 'nav_brand', value: navBrand, category: 'nav' }, { onConflict: 'key' });
+    const settingsSaved = await save();
+    const { error } = await supabase.from('site_settings').upsert({ key: 'nav_brand', value: navBrand, category: 'nav' }, { onConflict: 'key' });
     setSavingManually(false);
+    return settingsSaved && !error;
   };
 
   if (!loaded) return <Loader2 className="w-6 h-6 animate-spin text-katana-crimson" />;
