@@ -40,9 +40,9 @@ export function LegendEditor() {
     });
   }, []);
 
-  const saveAll = async () => {
+  const saveAll = async (): Promise<boolean> => {
     setSavingManually(true);
-    await save();
+    const settingsSaved = await save();
     for (const d of details) {
       if (d.id) {
         await supabase.from('character_details').update({
@@ -51,6 +51,7 @@ export function LegendEditor() {
       }
     }
     setSavingManually(false);
+    return settingsSaved;
   };
 
   if (!loaded || !detailsLoaded) return <Loader2 className="w-6 h-6 animate-spin text-katana-crimson" />;
