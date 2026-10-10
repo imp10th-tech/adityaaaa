@@ -1,0 +1,2 @@
+[functions.generate-member-code]
+verify_jwt = false
